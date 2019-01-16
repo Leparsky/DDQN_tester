@@ -30,20 +30,20 @@ class Agent:
     def network(self, dueling):
         """ Build Deep Q-Network
         """
-        inp = Input((self.state_dim))
+        inp = Input(shape=(self.state_dim,))
 
         # Determine whether we are dealing with an image input (Atari) or not
-        if(len(self.state_dim) > 2):
+        '''if(len(self.state_dim) > 2):
             inp = Input((self.state_dim[1:]))
             x = conv_block(inp, 32, (2, 2), 8)
             x = conv_block(x, 64, (2, 2), 4)
             x = conv_block(x, 64, (2, 2), 3)
             x = Flatten()(x)
             x = Dense(256, activation='relu')(x)
-        else:
-            x = Flatten()(inp)
-            x = Dense(64, activation='relu')(x)
-            x = Dense(64, activation='relu')(x)
+        else:'''
+        #x = Flatten()(inp) # Слой преобразования данных из 2D представления в плоское
+        x = Dense(self.state_dim*2, activation='relu')(inp)
+        x = Dense(self.state_dim*2, activation='relu')(x)
 
         if(dueling):
             # Have the network estimate the Advantage function as an intermediate layer
@@ -78,6 +78,7 @@ class Agent:
         return self.target_model.predict(self.reshape(inp))
 
     def reshape(self, x):
-        if len(x.shape) < 4 and len(self.state_dim) > 2: return np.expand_dims(x, axis=0)
-        elif len(x.shape) < 3: return np.expand_dims(x, axis=0)
-        else: return x
+        if len(x.shape) == 1: return np.expand_dims(x, axis=0)
+        #else:
+        return x
+

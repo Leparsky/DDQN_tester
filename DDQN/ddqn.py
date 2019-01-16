@@ -20,7 +20,7 @@ class DDQN:
         # Environment and DDQN parameters
         self.with_per = args.with_per
         self.action_dim = action_dim
-        self.state_dim = (args.consecutive_frames,) + state_dim
+        self.state_dim = state_dim
         #
         self.lr = 2.5e-4
         self.gamma = 0.95
@@ -28,10 +28,8 @@ class DDQN:
         self.epsilon_decay = 0.99
         self.buffer_size = 20000
         #
-        if(len(state_dim) < 3):
-            self.tau = 1e-2
-        else:
-            self.tau = 1.0
+        self.tau = 1e-2
+
         # Create actor and critic networks
         self.agent = Agent(self.state_dim, action_dim, self.lr, self.tau, args.dueling)
         # Memory Buffer for Experience Replay
@@ -78,18 +76,60 @@ class DDQN:
 
         results = []
         tqdm_e = tqdm(range(args.nb_episodes), desc='Score', leave=True, unit=" episodes")
-
+        step=0
+        gross_profit = 0
         for e in tqdm_e:
             # Reset episode
             time, cumul_reward, done  = 0, 0, False
             old_state = env.reset()
-
+            ##########################################
+            total_reward = 0
+            total_profit = 0
+            total_loss = 0
+            total_profitMax = 0
+            total_profitMin = 0
+            max_drop = 0
+            profitLst = []
+            lossLst = []
+            step = 0
+            #####################################3####
             while not done:
                 if args.render: env.render()
                 # Actor picks an action (following the policy)
                 a = self.policy_action(old_state)
                 # Retrieve new state, reward, and whether the state is terminal
-                new_state, r, done, _ = env.step(a)
+                #new_state, r, done, _ = env.step(a)
+
+                #######################################################
+                new_state, r, done, buy, sell, profit = env.step(a)
+
+                total_reward += r
+                if profit != 0:
+                    total_profit += profit
+                    if total_profit > total_profitMax:
+                        total_profitMax = total_profit
+                        total_profitMin = total_profit
+                    if total_profit < total_profitMin:
+                        total_profitMin = total_profit
+                        try:
+                            if max_drop < (total_profitMax - total_profitMin) / total_profitMax:
+                                max_drop = (total_profitMax - total_profitMin) / total_profitMax
+                        except:
+                            max_drop=0
+
+
+                if profit > 0:
+                    profitLst.append(profit)
+                elif profit < 0:
+                    lossLst.append(profit)
+
+                step += 1
+                if step % 1500 == 0:
+                    print('maxProfit: {} maxLOSS: {} avgProfit: {:01.2f} avgLOSS: {:01.2f} maxdrop: {:.2%} Total profit: {}/{}  '.format(
+                        np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
+                        max_drop, total_profit, gross_profit))
+                done = True if step == len(env.data) - 2 else False
+                ######################################################
                 # Memorize for experience replay
                 self.memorize(old_state, a, r, done, new_state)
                 # Update current state
@@ -100,7 +140,7 @@ class DDQN:
                 if(self.buffer.size() > args.batch_size):
                     self.train_agent(args.batch_size)
                     self.agent.transfer_weights()
-
+            gross_profit += total_profit
             # Gather stats every episode for plotting
             if(args.gather_stats):
                 mean, stdev = gather_stats(self, env)

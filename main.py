@@ -4,11 +4,12 @@
 
 import os
 import sys
-import gym
+#import gym
 import argparse
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+from environment import Environment
 
 # from A2C.a2c import A2C
 # from A3C.a3c import A3C
@@ -20,7 +21,7 @@ from keras.utils import to_categorical
 
 # from utils.atari_environment import AtariEnvironment
 # from utils.continuous_environments import Environment
-# from utils.networks import get_session
+from utils.networks import get_session
 
 # gym.logger.set_level(40)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -33,6 +34,8 @@ def parse_args(args):
     #
     parser.add_argument('--type', type=str, default='DDQN', help="Algorithm to train from {A2C, A3C, DDQN, DDPG}")
     # parser.add_argument('--is_atari', dest='is_atari', action='store_true', help="Atari Environment")
+
+    parser.add_argument('--history_win', type=int, default=90, help="Number history window")
     parser.add_argument('--with_PER', dest='with_per', action='store_true',
                         help="Use Prioritized Experience Replay (DDQN + PER)")
     parser.add_argument('--dueling', dest='dueling', action='store_true', help="Use a Dueling Architecture (DDQN)")
@@ -82,10 +85,12 @@ def main(args=None):
     else:'''
 
     # Standard Environments
-    env = Environment(gym.make(args.env), args.consecutive_frames)
+    env = Environment(args)
+    env.getStockDataVecFN(r'D:\PycharmProjects\RIZ8\SPFB.RTS-6.18(5M).csv')
+
     env.reset()
     state_dim = env.get_state_size()
-    action_dim = gym.make(args.env).action_space.n
+    action_dim = env.get_action_size()
 
     # Pick algorithm to train
     if (args.type == "DDQN"):
@@ -106,7 +111,7 @@ def main(args=None):
         df.to_csv(args.type + "/logs.csv", header=['Episode', 'Mean', 'Stddev'], float_format='%10.5f')
 
     # Display agent
-    old_state, time = env.reset(), 0
+'''    old_state, time = env.reset(), 0
     while True:
         env.render()
         a = algo.policy_action(old_state)
@@ -114,6 +119,6 @@ def main(args=None):
         time += 1
         if done: env.reset()
 
-
+'''
 if __name__ == "__main__":
     main()
