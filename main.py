@@ -4,6 +4,7 @@
 
 import os
 import sys
+import csv
 #import gym
 import argparse
 import numpy as np
@@ -113,21 +114,11 @@ def main(args=None):
     # evaluate
     stats = algo.e.train(env, args, summary_writer)
 
-        # Export results to CSV
-        if (args.gather_stats):
-            df = pd.DataFrame(np.array(stats))
-            df.to_csv(r"D:\PycharmProjects\DDQN_tester\logs.csv", header=['Episode', 'Mean', 'Stddev'],
-                      float_format='%10.5f')
+    # Assuming res is a list of lists
+    with open("logFile.csv", "a") as output:
+        writer = csv.writer(output, lineterminator='\n')
+        writer.writerows(stats)
+    algo.evaluate(env, args, summary_writer, "../models/model_ep")
 
-    # Display agent
-'''    old_state, time = env.reset(), 0
-    while True:
-        env.render()
-        a = algo.policy_action(old_state)
-        old_state, r, done, _ = env.step(a)
-        time += 1
-        if done: env.reset()
-
-'''
 if __name__ == "__main__":
     main()

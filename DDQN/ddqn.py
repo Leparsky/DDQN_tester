@@ -1,4 +1,5 @@
 import sys
+import csv
 import random
 import numpy as np
 
@@ -127,9 +128,9 @@ class DDQN:
 
                 step += 1
                 if step % 1500 == 0:
-                    print('maxProfit: {} maxLOSS: {} avgProfit: {:01.2f} avgLOSS: {:01.2f} maxdrop: {:.2%} Total profit: {}/{}  '.format(
+                    print('maxProfit: {} maxLOSS: {} avgProfit: {:01.2f} avgLOSS: {:01.2f} maxdrop: {:.2%} Total profit: {}/{} TRADES: {}  '.format(
                         np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
-                        max_drop, total_profit, gross_profit))
+                        max_drop, total_profit, gross_profit, trades))
                 done = True if step == len(env.data) - 2 else False
                 ######################################################
                 # Memorize for experience replay
@@ -142,6 +143,7 @@ class DDQN:
                 if(self.buffer.size() > args.batch_size):
                     self.train_agent(args.batch_size)
                     self.agent.transfer_weights()
+
             gross_profit += total_profit
             # Gather stats every episode for plotting
             if(args.gather_stats):
@@ -165,7 +167,7 @@ class DDQN:
             # Display score
             tqdm_e.set_description("Score: " + str(cumul_reward))
             tqdm_e.refresh()
-
+            self.agent.saveModel("../models/model_ep", "")
         return results
 
     def memorize(self, state, action, reward, done, new_state):
@@ -181,5 +183,72 @@ class DDQN:
         else:
             td_error = 0
         self.buffer.memorize(state, action, reward, done, new_state, td_error)
-    def evaluate
-        a=1
+
+    def Evaluate(self, env, args, summary_writer, model, andtrain=True):
+        """ Evaluate            """
+        results = []
+        self.agent.loadModel(model , "")
+        done = False
+        old_state = env.reset()
+        ##########################################
+        total_reward = 0
+        total_profit = 0
+        total_loss = 0
+        total_profitMax = 0
+        total_profitMin = 0
+        max_drop = 0
+        profitLst = []
+        lossLst = []
+        step = 0
+        trades =0
+        #####################################3####
+        while not done:
+            # if args.render: env.render()
+            # Actor picks an action (following the policy)
+            a = self.policy_action(old_state)
+            # Retrieve new state, reward, and whether the state is terminal
+            new_state, r, done, buy, sell, profit = env.step(a)
+
+            #######################################################
+            total_reward += r
+            if profit != 0:
+                trades += 1
+                total_profit += profit
+                if total_profit > total_profitMax:
+                    total_profitMax = total_profit
+                    total_profitMin = total_profit
+                if total_profit < total_profitMin:
+                    total_profitMin = total_profit
+                    try:
+                        if max_drop < (total_profitMax - total_profitMin) / total_profitMax:
+                            max_drop = (total_profitMax - total_profitMin) / total_profitMax
+                    except:
+                        max_drop = 0
+            if profit > 0:
+                profitLst.append(profit)
+            elif profit < 0:
+                lossLst.append(profit)
+            step += 1
+            if step % 1500 == 0:
+                print(
+                    'maxProfit: {} maxLOSS: {} avgProfit: {:01.2f} avgLOSS: {:01.2f} maxdrop: {:.2%} Total profit: {} TRADES: {}  '.format(
+                        np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
+                        max_drop, total_profit,  trades))
+            done = True if step == len(env.data) - 2 else False
+            ######################################################
+            # Memorize for experience replay
+            if andtrain:
+                self.memorize(old_state, a, r, done, new_state)
+                # Train DDQN and transfer weights to target network
+                if (self.buffer.size() > args.batch_size):
+                    self.train_agent(args.batch_size)
+                    self.agent.transfer_weights()
+            # Update current state
+            old_state = new_state
+        print('maxProfit: {} maxLOSS: {} avgProfit: {:01.2f} avgLOSS: {:01.2f} maxdrop: {:.2%} Total profit: {} TRADES: {}  '.format(np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst), max_drop, total_profit, trades))
+        results.append(np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst), max_drop, total_profit, trades)
+        # Assuming res is a list of lists
+        with open("logFile.csv", "w") as output:
+            writer = csv.writer(output, lineterminator='\n')
+            writer.writerows(results)
+        return results

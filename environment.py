@@ -18,12 +18,19 @@ class Environment:
         # self.position_value = 0
         self.history = [0 for _ in range(self.history_t)]
 
-    def getStockDataVecFN(self,key =  r'D:\PycharmProjects\RIZ8\SPFB.RTS-6.18(5M).csv'):
+    def GetStockDataVecFN(self, key=r'D:\PycharmProjects\RIZ8\SPFB.RTS-6.18(5M).csv', append=False):
+        dateparse = lambda x, y: pd.datetime.combine(pd.datetime.strptime(x, '%Y%m%d'),pd.datetime.strptime(y, '%H%M%S').time())
+        df = pd.read_csv(key, delimiter=',', index_col=['datetime'],parse_dates={'datetime': ['<DATE>', '<TIME>']}, date_parser=dateparse)
+        if append:
+            self.data = pd.concat(self.data, df, ignore_index=True)
+        else:
+            self.data = df
+    '''def getStockDataVecFN(self,key =  r'D:\PycharmProjects\RIZ8\SPFB.RTS-6.18(5M).csv'):
             dateparse = lambda x, y: pd.datetime.combine(pd.datetime.strptime(x, '%Y%m%d'),
                                                          pd.datetime.strptime(y, '%H%M%S').time())
             self.data = pd.read_csv(key, delimiter=',', index_col=['datetime'],
                                parse_dates={'datetime': ['<DATE>', '<TIME>']}, date_parser=dateparse)
-
+    '''
     def get_state_size(self):
         return self.state_size
 
@@ -38,6 +45,17 @@ class Environment:
         # self.position_value = 0
         self.history = [0 for _ in range(self.history_t)]
         return np.zeros(self.state_size)
+
+    def reset(self):
+        self.t = 0
+        self.done = False
+        self.profits = 0
+        self.position = 0
+        # self.position_value = 0
+        self.history = [0 for _ in range(self.history_t)]
+        for _ in range(self.history_t):  # step(0) - act = 0: stay
+            self.step(0)
+            return np.zeros(1 + self.history_t)
 
     def step(self, act):
         datacol = '<CLOSE>'
