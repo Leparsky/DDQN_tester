@@ -91,6 +91,7 @@ class DDQN:
             max_drop = 0
             profitLst = []
             lossLst = []
+            trades =0
             step = 0
             #####################################3####
             while not done:
@@ -105,6 +106,7 @@ class DDQN:
 
                 total_reward += r
                 if profit != 0:
+                    trades += 1
                     total_profit += profit
                     if total_profit > total_profitMax:
                         total_profitMax = total_profit
@@ -112,7 +114,7 @@ class DDQN:
                     if total_profit < total_profitMin:
                         total_profitMin = total_profit
                         try:
-                            if max_drop < (total_profitMax - total_profitMin) / total_profitMax:
+                            if total_profitMax != 0 and max_drop < (total_profitMax - total_profitMin) / total_profitMax :
                                 max_drop = (total_profitMax - total_profitMin) / total_profitMax
                         except:
                             max_drop=0
@@ -148,7 +150,16 @@ class DDQN:
 
             # Export results for Tensorboard
             score = tfSummary('score', cumul_reward)
+            l_profit = tfSummary('profit', total_profit)
+            l_aprofit = tfSummary('average profit', np.mean(profitLst))
+            l_aloss = tfSummary('l_aloss', -np.mean(lossLst))
+            l_trades = tfSummary('l_trades', trades)
+            np.mean(profitLst), -np.mean(lossLst)
             summary_writer.add_summary(score, global_step=e)
+            summary_writer.add_summary(l_profit, global_step=e)
+            summary_writer.add_summary(l_aprofit, global_step=e)
+            summary_writer.add_summary(l_aloss, global_step=e)
+            summary_writer.add_summary(l_trades, global_step=e)
             summary_writer.flush()
 
             # Display score
@@ -170,3 +181,5 @@ class DDQN:
         else:
             td_error = 0
         self.buffer.memorize(state, action, reward, done, new_state, td_error)
+    def evaluate
+        a=1

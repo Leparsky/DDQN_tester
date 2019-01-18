@@ -1,8 +1,10 @@
 import sys
 import numpy as np
+import os.path
 import keras.backend as K
 
 from keras.models import Model
+from keras.models import load_model
 from keras.optimizers import Adam
 from keras.layers import Input, Dense, Flatten, Reshape, LSTM, Lambda
 from keras.regularizers import l2
@@ -82,3 +84,21 @@ class Agent:
         #else:
         return x
 
+    def saveModel(self, file_path,version)
+        directory = os.path.dirname(file_path)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        if version:
+            self.model.save(file_path+version)
+        else:
+            v=1
+            while os.path.exists(file_path+v):
+                v += 1
+            self.model.save(file_path+str(v))
+    def loadModel(self, file_path,version):
+        if version:
+            self.model = load_model(file_path+version)
+        else:
+            v=1
+        while os.path.exists(file_path+v):
+            v += 1

@@ -40,7 +40,7 @@ def parse_args(args):
                         help="Use Prioritized Experience Replay (DDQN + PER)")
     parser.add_argument('--dueling', dest='dueling', action='store_true', help="Use a Dueling Architecture (DDQN)")
     #
-    parser.add_argument('--nb_episodes', type=int, default=50, help="Number of training episodes")
+    parser.add_argument('--nb_episodes', type=int, default=1, help="Number of training episodes")
     parser.add_argument('--batch_size', type=int, default=20, help="Batch size (experience replay)")
     # parser.add_argument('--consecutive_frames', type=int, default=4, help="Number of consecutive frames (action repeat)")
     # parser.add_argument('--training_interval', type=int, default=30, help="Network training frequency")
@@ -108,7 +108,16 @@ def main(args=None):
     # Export results to CSV
     if (args.gather_stats):
         df = pd.DataFrame(np.array(stats))
-        df.to_csv(args.type + "/logs.csv", header=['Episode', 'Mean', 'Stddev'], float_format='%10.5f')
+        df.to_csv(r"D:\PycharmProjects\DDQN_tester\logs.csv", header=['Episode', 'Mean', 'Stddev'], float_format='%10.5f')
+
+    # evaluate
+    stats = algo.e.train(env, args, summary_writer)
+
+        # Export results to CSV
+        if (args.gather_stats):
+            df = pd.DataFrame(np.array(stats))
+            df.to_csv(r"D:\PycharmProjects\DDQN_tester\logs.csv", header=['Episode', 'Mean', 'Stddev'],
+                      float_format='%10.5f')
 
     # Display agent
 '''    old_state, time = env.reset(), 0
