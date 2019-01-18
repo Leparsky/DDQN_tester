@@ -167,7 +167,10 @@ class DDQN:
             # Display score
             tqdm_e.set_description("Score: " + str(cumul_reward))
             tqdm_e.refresh()
-            self.agent.saveModel("../models/model_ep", "")
+            self.agent.saveModel("./models/model_ep", "")
+            results = [np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst), max_drop,
+                       total_profit, trades]
+
         return results
 
     def memorize(self, state, action, reward, done, new_state):
@@ -184,10 +187,10 @@ class DDQN:
             td_error = 0
         self.buffer.memorize(state, action, reward, done, new_state, td_error)
 
-    def Evaluate(self, env, args, summary_writer, model, andtrain=True):
+    def evaluate(self, env, args, summary_writer, model, andtrain=True):
         """ Evaluate            """
         results = []
-        self.agent.loadModel(model , "")
+        self.agent.loadModel(model, "")
         done = False
         old_state = env.reset()
         ##########################################
@@ -220,7 +223,7 @@ class DDQN:
                 if total_profit < total_profitMin:
                     total_profitMin = total_profit
                     try:
-                        if max_drop < (total_profitMax - total_profitMin) / total_profitMax:
+                        if total_profitMax != 0 and max_drop < (total_profitMax - total_profitMin) / total_profitMax:
                             max_drop = (total_profitMax - total_profitMin) / total_profitMax
                     except:
                         max_drop = 0
@@ -246,9 +249,5 @@ class DDQN:
             # Update current state
             old_state = new_state
         print('maxProfit: {} maxLOSS: {} avgProfit: {:01.2f} avgLOSS: {:01.2f} maxdrop: {:.2%} Total profit: {} TRADES: {}  '.format(np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst), max_drop, total_profit, trades))
-        results.append(np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst), max_drop, total_profit, trades)
-        # Assuming res is a list of lists
-        with open("logFile.csv", "w") as output:
-            writer = csv.writer(output, lineterminator='\n')
-            writer.writerows(results)
+        results=[np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst), max_drop, total_profit, trades]
         return results

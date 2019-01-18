@@ -92,7 +92,7 @@ class Agent:
             self.model.save(file_path+version)
         else:
             v=1
-            while os.path.exists(file_path+v):
+            while os.path.exists(file_path+str(v)):
                 v += 1
             self.model.save(file_path+str(v))
     def loadModel(self, file_path,version):
@@ -100,5 +100,5 @@ class Agent:
             self.model = load_model(file_path+version)
         else:
             v=1
-        while os.path.exists(file_path+v):
+        while os.path.exists(file_path+str(v)):
             v += 1

@@ -95,8 +95,6 @@ class Environment:
         # self.position_value += (self.data.iloc[self.t, :][datacol] - p)
         self.history.pop(0)
         # method takes a single argument (index) and removes the element present at that index from the list. ...
-        if  self.t >= len(self.data)-1:
-            print("GPLW")
         self.history.append(self.data.iloc[self.t, :][datacol] - self.data.iloc[(self.t - 1), :][
             datacol])  # add the diferrence between cureent CLose Value and prior Close Value
 

@@ -33,8 +33,8 @@ def parse_args(args):
     """
     parser = argparse.ArgumentParser(description='Training parameters')
     #
-    parser.add_argument('--trainf', type=str, default='D:\PycharmProjects\RIZ8\SPFB.RTS-9.18(5M).csv', help="File For train")
-    parser.add_argument('--evalf', type=str, default='D:\PycharmProjects\RIZ8\SPFB.RTS-9.18(5M).csv', help="File for evaluate")
+    parser.add_argument('--trainf', type=str, default='D:\PycharmProjects\RIZ8\SPFB.RTS-3.18(5M).csv', help="File For train")
+    parser.add_argument('--evalf', type=str, default='D:\PycharmProjects\RIZ8\SPFB.RTS-6.18(5M).csv', help="File for evaluate")
 
     parser.add_argument('--type', type=str, default='DDQN', help="Algorithm to train from {A2C, A3C, DDQN, DDPG}")
     # parser.add_argument('--is_atari', dest='is_atari', action='store_true', help="Atari Environment")
@@ -90,6 +90,7 @@ def main(args=None):
     else:'''
 
     # Standard Environments
+
     env = Environment(args)
     env.GetStockDataVecFN(args.trainf)
 
@@ -109,23 +110,21 @@ def main(args=None):
 
     # Train
     stats = algo.train(env, args, summary_writer)
-
-
-    # evaluate
-    stats = algo.e.train(env, args, summary_writer)
-
     # Assuming res is a list of lists
     with open("logFile.csv", "a") as output:
-        writer = csv.writer(output, lineterminator='\n')
-        writer.writerows([args.trainf]+[args.evalf] + stats)
+        wr = csv.writer(output,delimiter=';')
+        wr.writerow(["stage", "file", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop", "Total profit", "TRADES"])
+        wr.writerow(["train",args.trainf] + stats)
+
+
 
     env.GetStockDataVecFN(args.evalf, False)
-
-    stats = algo.evaluate(env, args, summary_writer, "../models/model_ep")
+    # evaluate
+    stats = algo.evaluate(env, args, summary_writer, "./models/model_ep")
     # Assuming res is a list of lists
     with open("logFile.csv", "a") as output:
-        writer = csv.writer(output, lineterminator='\n')
-        writer.writerows(stats)
+        wr = csv.writer(output,delimiter=';')
+        wr.writerow(["evaluate",args.evalf] + stats)
 
 if __name__ == "__main__":
     main()
