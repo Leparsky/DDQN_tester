@@ -33,6 +33,9 @@ def parse_args(args):
     """
     parser = argparse.ArgumentParser(description='Training parameters')
     #
+    parser.add_argument('--trainf', type=str, default='D:\PycharmProjects\RIZ8\SPFB.RTS-9.18(5M).csv', help="File For train")
+    parser.add_argument('--evalf', type=str, default='D:\PycharmProjects\RIZ8\SPFB.RTS-9.18(5M).csv', help="File for evaluate")
+
     parser.add_argument('--type', type=str, default='DDQN', help="Algorithm to train from {A2C, A3C, DDQN, DDPG}")
     # parser.add_argument('--is_atari', dest='is_atari', action='store_true', help="Atari Environment")
 
@@ -52,6 +55,7 @@ def parse_args(args):
     # parser.add_argument('--render', dest='render', action='store_true', help="Render environment while training")
     # parser.add_argument('--env', type=str, default='BreakoutNoFrameskip-v4',help="OpenAI Gym Environment")
     parser.add_argument('--gpu', type=int, default=0, help='GPU ID')
+
     #
     parser.set_defaults(render=False)
     return parser.parse_args(args)
@@ -87,7 +91,7 @@ def main(args=None):
 
     # Standard Environments
     env = Environment(args)
-    env.getStockDataVecFN(r'D:\PycharmProjects\RIZ8\SPFB.RTS-6.18(5M).csv')
+    env.GetStockDataVecFN(args.trainf)
 
     env.reset()
     state_dim = env.get_state_size()
@@ -106,10 +110,6 @@ def main(args=None):
     # Train
     stats = algo.train(env, args, summary_writer)
 
-    # Export results to CSV
-    if (args.gather_stats):
-        df = pd.DataFrame(np.array(stats))
-        df.to_csv(r"D:\PycharmProjects\DDQN_tester\logs.csv", header=['Episode', 'Mean', 'Stddev'], float_format='%10.5f')
 
     # evaluate
     stats = algo.e.train(env, args, summary_writer)
@@ -117,8 +117,15 @@ def main(args=None):
     # Assuming res is a list of lists
     with open("logFile.csv", "a") as output:
         writer = csv.writer(output, lineterminator='\n')
+        writer.writerows([args.trainf]+[args.evalf] + stats)
+
+    env.GetStockDataVecFN(args.evalf, False)
+
+    stats = algo.evaluate(env, args, summary_writer, "../models/model_ep")
+    # Assuming res is a list of lists
+    with open("logFile.csv", "a") as output:
+        writer = csv.writer(output, lineterminator='\n')
         writer.writerows(stats)
-    algo.evaluate(env, args, summary_writer, "../models/model_ep")
 
 if __name__ == "__main__":
     main()

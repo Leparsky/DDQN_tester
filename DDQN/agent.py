@@ -84,7 +84,7 @@ class Agent:
         #else:
         return x
 
-    def saveModel(self, file_path,version)
+    def saveModel(self, file_path,version):
         directory = os.path.dirname(file_path)
         if not os.path.exists(directory):
             os.makedirs(directory)

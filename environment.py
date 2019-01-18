@@ -10,7 +10,6 @@ class Environment:
         self.history_t = args.history_win
         self.state_size =  self.history_t+1
         self.action_size = 3
-        self.reset()
         self.t = 0
         self.done = False
         self.profits = 0
@@ -25,6 +24,7 @@ class Environment:
             self.data = pd.concat(self.data, df, ignore_index=True)
         else:
             self.data = df
+
     '''def getStockDataVecFN(self,key =  r'D:\PycharmProjects\RIZ8\SPFB.RTS-6.18(5M).csv'):
             dateparse = lambda x, y: pd.datetime.combine(pd.datetime.strptime(x, '%Y%m%d'),
                                                          pd.datetime.strptime(y, '%H%M%S').time())
@@ -36,15 +36,6 @@ class Environment:
 
     def get_action_size(self):
         return self.action_size
-
-    def reset(self):
-        self.t = 0
-        self.done = False
-        self.profits = 0
-        self.position = 0
-        # self.position_value = 0
-        self.history = [0 for _ in range(self.history_t)]
-        return np.zeros(self.state_size)
 
     def reset(self):
         self.t = 0
