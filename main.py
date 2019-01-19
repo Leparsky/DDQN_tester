@@ -35,7 +35,7 @@ def parse_args(args):
     #
     parser.add_argument('--trainf', type=str, default='D:\PycharmProjects\RIZ8\SPFB.RTS-3.18(5M).csv', help="File For train")
     parser.add_argument('--evalf', type=str, default='D:\PycharmProjects\RIZ8\SPFB.RTS-6.18(5M).csv', help="File for evaluate")
-
+    parser.add_argument('--usevol', dest='usevol', default=False, action='store_true', help="Add volume to environment")
     parser.add_argument('--type', type=str, default='DDQN', help="Algorithm to train from {A2C, A3C, DDQN, DDPG}")
     # parser.add_argument('--is_atari', dest='is_atari', action='store_true', help="Atari Environment")
 
@@ -44,7 +44,7 @@ def parse_args(args):
                         help="Use Prioritized Experience Replay (DDQN + PER)")
     parser.add_argument('--dueling', dest='dueling', action='store_true', help="Use a Dueling Architecture (DDQN)")
     #
-    parser.add_argument('--nb_episodes', type=int, default=1, help="Number of training episodes")
+    parser.add_argument('--nb_episodes', type=int, default=50, help="Number of training episodes")
     parser.add_argument('--batch_size', type=int, default=20, help="Batch size (experience replay)")
     # parser.add_argument('--consecutive_frames', type=int, default=4, help="Number of consecutive frames (action repeat)")
     # parser.add_argument('--training_interval', type=int, default=30, help="Network training frequency")
@@ -111,10 +111,11 @@ def main(args=None):
     # Train
     stats = algo.train(env, args, summary_writer)
     # Assuming res is a list of lists
-    with open("logFile.csv", "a") as output:
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    with open(dir_path + "logFile.csv", "a") as output:
         wr = csv.writer(output,delimiter=';')
-        wr.writerow(["stage", "file", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop", "Total profit", "TRADES"])
-        wr.writerow(["train",args.trainf] + stats)
+        wr.writerow(["stage", "file","history_win","usevol", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop", "Total profit", "TRADES"])
+        wr.writerow(["train",args.trainf, args.history_win, args.usevol] + stats)
 
 
 
@@ -122,9 +123,10 @@ def main(args=None):
     # evaluate
     stats = algo.evaluate(env, args, summary_writer, "./models/model_ep")
     # Assuming res is a list of lists
-    with open("logFile.csv", "a") as output:
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    with open(dir_path + "logFile.csv", "a") as output:
         wr = csv.writer(output,delimiter=';')
-        wr.writerow(["evaluate",args.evalf] + stats)
+        wr.writerow(["evaluate",args.evalf, args.history_win, args.usevol] + stats)
 
 if __name__ == "__main__":
     main()

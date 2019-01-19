@@ -7,8 +7,13 @@ import numpy as np
 class Environment:
     def __init__(self, args):
         #self.data = data
+        self.args = args
         self.history_t = args.history_win
+
         self.state_size =  self.history_t+1
+        if args.usevol:
+            self.state_size += self.history_t
+            self.history_vol = [0 for _ in range(self.history_t)]
         self.action_size = 3
         self.t = 0
         self.done = False
@@ -44,11 +49,81 @@ class Environment:
         self.position = 0
         # self.position_value = 0
         self.history = [0 for _ in range(self.history_t)]
-        for _ in range(self.history_t):  # step(0) - act = 0: stay
+        if self.args.usevol:
+            self.history_vol  = [0 for _ in range(self.history_t)]
+        for _ in range(self.history_t-1):  # step(0) - act = 0: stay
             self.step(0)
-            return np.zeros(1 + self.history_t)
+        res = self.step(0)
+        return res[0]
 
     def step(self, act):
+        datacol = '<CLOSE>'
+        datacol_vol  = '<VOL>'
+        reward = 0  # stay
+        profit = 0
+        buy = 0
+        sell = 0
+        position_val=0
+        # act = 0: stay, 1: buy, 2: sell
+        if act == 1:  # buy
+            if self.position == 0:  # если не в позиции то добпвляем лонг с "+"
+                self.position = self.data.iloc[self.t, :][datacol]
+                buy = self.position
+                # add value to long positions  (we enter at the candle close)
+            elif self.position > 0:  # есть открытая длинная позиция
+                reward = -100
+            else:
+                profit = (-self.data.iloc[self.t, :][datacol] - self.position)
+                self.profits += profit
+                buy = self.data.iloc[self.t, :][datacol]
+                self.position = 0
+
+                # Есть открытая короткая позиция
+
+        elif act == 2:  # sell
+            if self.position == 0:  # если не в позиции то добпвляем Short с "-"
+                self.position = -self.data.iloc[self.t, :][datacol]
+                # add value to long positions  (we enter at the candle close)
+                sell = - self.position
+            elif self.position < 0:  # есть открытая короткая позиция
+                reward = -100
+            else:
+                profit = (self.data.iloc[self.t, :][datacol] - self.position)
+                # Есть открытая короткая позиция
+                self.profits += profit  # Remember profit
+                sell = self.data.iloc[self.t, :][datacol]
+                self.position = 0
+        if self.position < 0:
+            position_val = (-self.data.iloc[self.t, :][datacol] - self.position)
+        elif  self.position > 0:
+            position_val = (self.data.iloc[self.t, :][datacol] - self.position)
+            # set next time
+        self.t += 1
+        # self.position_value = 0
+        # for p in self.positions:  # calculate position value
+        # self.position_value += (self.data.iloc[self.t, :][datacol] - p)
+        self.history.pop(0)
+        self.done = True if self.t>=len(self.data)-1 else False
+        # method takes a single argument (index) and removes the element present at that index from the list. ...
+        self.history.append(self.data.iloc[self.t, :][datacol] - self.data.iloc[(self.t - 1), :][
+            datacol])  # add the diferrence between cureent CLose Value and prior Close Value
+
+        result = [position_val] + self.history
+
+        if self.args.usevol:
+            self.history_vol.pop(0)
+            self.history_vol.append(self.data.iloc[self.t, :][datacol_vol] - self.data.iloc[(self.t - 1), :][
+                datacol_vol])  # add the diferrence between cureent CLose Value and prior Close Value
+            result+= self.history_vol
+        # clipping reward
+        if profit != 0:
+            reward = profit
+        elif position_val < -300:
+            reward += position_val*3
+
+        return np.array(result), reward, self.done, buy, sell, profit  # obs, reward, done,profit
+
+    def step_old(self, act):
         datacol = '<CLOSE>'
         reward = 0  # stay
         profit = 0

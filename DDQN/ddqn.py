@@ -1,4 +1,5 @@
 import sys
+import os
 import csv
 import random
 import numpy as np
@@ -77,7 +78,7 @@ class DDQN:
 
         results = []
         tqdm_e = tqdm(range(args.nb_episodes), desc='Score', leave=True, unit=" episodes")
-        step=0
+        epoch=0
         gross_profit = 0
         for e in tqdm_e:
             # Reset episode
@@ -131,7 +132,7 @@ class DDQN:
                     print('maxProfit: {} maxLOSS: {} avgProfit: {:01.2f} avgLOSS: {:01.2f} maxdrop: {:.2%} Total profit: {}/{} TRADES: {}  '.format(
                         np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
                         max_drop, total_profit, gross_profit, trades))
-                done = True if step == len(env.data) - 2 else False
+                #done = True if step == len(env.data) - 3 else False
                 ######################################################
                 # Memorize for experience replay
                 self.memorize(old_state, a, r, done, new_state)
@@ -170,7 +171,13 @@ class DDQN:
             self.agent.saveModel("./models/model_ep", "")
             results = [np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst), max_drop,
                        total_profit, trades]
-
+            epoch +=1
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            with open(dir_path + "logFile.csv", "a") as output:
+                wr = csv.writer(output, delimiter=';')
+                wr.writerow(["stage", "file", "history_win", "usevol", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS",
+                             "maxdrop", "Total profit", "TRADES","epoch"])
+                wr.writerow(["train", args.trainf, args.history_win, args.usevol] + results + [epoch])
         return results
 
     def memorize(self, state, action, reward, done, new_state):
