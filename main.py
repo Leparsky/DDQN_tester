@@ -23,7 +23,7 @@ from keras.utils import to_categorical
 # from utils.atari_environment import AtariEnvironment
 # from utils.continuous_environments import Environment
 from utils.networks import get_session
-
+from utils.csvwriter import WritetoCsvFile
 # gym.logger.set_level(40)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -111,22 +111,17 @@ def main(args=None):
     # Train
     stats = algo.train(env, args, summary_writer)
     # Assuming res is a list of lists
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    with open(dir_path + "logFile.csv", "a") as output:
-        wr = csv.writer(output,delimiter=';')
-        wr.writerow(["stage", "file","history_win","usevol", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop", "Total profit", "TRADES"])
-        wr.writerow(["train",args.trainf, args.history_win, args.usevol] + stats)
-
-
+    WritetoCsvFile("logFile.csv",
+                   ["stage", "file", "history_win", "usevol", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop",
+                    "Total profit", "TRADES"])
+    WritetoCsvFile("logFile.csv", ["train",args.trainf, args.history_win, args.usevol] + stats)
 
     env.GetStockDataVecFN(args.evalf, False)
     # evaluate
     stats = algo.evaluate(env, args, summary_writer, "./models/model_ep")
     # Assuming res is a list of lists
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    with open(dir_path + "logFile.csv", "a") as output:
-        wr = csv.writer(output,delimiter=';')
-        wr.writerow(["evaluate",args.evalf, args.history_win, args.usevol] + stats)
+    WritetoCsvFile("logFile.csv",["stage", "file","history_win","usevol", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop", "Total profit", "TRADES"])
+    WritetoCsvFile("logFile.csv", ["evaluate", args.evalf, args.history_win, args.usevol] + stats )
 
 if __name__ == "__main__":
     main()

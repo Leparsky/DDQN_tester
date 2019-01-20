@@ -1,6 +1,3 @@
-import sys
-import os
-import csv
 import random
 import numpy as np
 
@@ -11,7 +8,7 @@ from random import random, randrange
 from utils.memory_buffer import MemoryBuffer
 from utils.networks import tfSummary
 from utils.stats import gather_stats
-
+from utils.csvwriter import WritetoCsvFile
 class DDQN:
     """ Deep Q-Learning Main Algorithm
     """
@@ -80,6 +77,10 @@ class DDQN:
         tqdm_e = tqdm(range(args.nb_episodes), desc='Score', leave=True, unit=" episodes")
         epoch=0
         gross_profit = 0
+        WritetoCsvFile("logFile_1.csv", ["stage", "file", "history_win", "usevol", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS",
+                         "maxdrop", "Total profit", "TRADES", "epoch"])
+        WritetoCsvFile("logFileDetail.csv",['stage', 'maxProfit', 'maxLOSS', 'avgProfit', 'avgLOSS', 'maxdrop', 'Total profit', 'gross profit', 'TRADES', 'epoch'])
+
         for e in tqdm_e:
             # Reset episode
             time, cumul_reward, done  = 0, 0, False
@@ -96,6 +97,7 @@ class DDQN:
             trades =0
             step = 0
             #####################################3####
+
             while not done:
                 if args.render: env.render()
                 # Actor picks an action (following the policy)
@@ -132,6 +134,9 @@ class DDQN:
                     print('maxProfit: {} maxLOSS: {} avgProfit: {:01.2f} avgLOSS: {:01.2f} maxdrop: {:.2%} Total profit: {}/{} TRADES: {}  '.format(
                         np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
                         max_drop, total_profit, gross_profit, trades))
+
+                    WritetoCsvFile("logFileDetail.csv", ["train", np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
+                                                        max_drop, total_profit, gross_profit, trades, epoch])
                 #done = True if step == len(env.data) - 3 else False
                 ######################################################
                 # Memorize for experience replay
@@ -172,12 +177,8 @@ class DDQN:
             results = [np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst), max_drop,
                        total_profit, trades]
             epoch +=1
-            dir_path = os.path.dirname(os.path.realpath(__file__))
-            with open(dir_path + "logFile.csv", "a") as output:
-                wr = csv.writer(output, delimiter=';')
-                wr.writerow(["stage", "file", "history_win", "usevol", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS",
-                             "maxdrop", "Total profit", "TRADES","epoch"])
-                wr.writerow(["train", args.trainf, args.history_win, args.usevol] + results + [epoch])
+            WritetoCsvFile("logFile_1.csv",["train", args.trainf, args.history_win, args.usevol] + results + [epoch])
+
         return results
 
     def memorize(self, state, action, reward, done, new_state):
@@ -244,7 +245,10 @@ class DDQN:
                     'maxProfit: {} maxLOSS: {} avgProfit: {:01.2f} avgLOSS: {:01.2f} maxdrop: {:.2%} Total profit: {} TRADES: {}  '.format(
                         np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
                         max_drop, total_profit,  trades))
-            done = True if step == len(env.data) - 2 else False
+                WritetoCsvFile("logFileDetail.csv",
+                               ["eval", np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
+                                max_drop, total_profit, gross_profit, trades, 'eval'])
+            #done = True if step == len(env.data) - 2 else False
             ######################################################
             # Memorize for experience replay
             if andtrain:
@@ -257,4 +261,5 @@ class DDQN:
             old_state = new_state
         print('maxProfit: {} maxLOSS: {} avgProfit: {:01.2f} avgLOSS: {:01.2f} maxdrop: {:.2%} Total profit: {} TRADES: {}  '.format(np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst), max_drop, total_profit, trades))
         results=[np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst), max_drop, total_profit, trades]
+        WritetoCsvFile("logFile_1.csv", ["eval", args.trainf, args.history_win, args.usevol] + results + 'eval')
         return results
