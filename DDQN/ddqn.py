@@ -79,7 +79,7 @@ class DDQN:
         gross_profit = 0
         WritetoCsvFile("logFile_1.csv", ["stage", "file", "history_win", "usevol", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS",
                          "maxdrop", "Total profit", "TRADES", "epoch"])
-        WritetoCsvFile("logFileDetail.csv",['stage', 'maxProfit', 'maxLOSS', 'avgProfit', 'avgLOSS', 'maxdrop', 'Total profit', 'gross profit', 'TRADES', 'epoch'])
+        WritetoCsvFile("logFileDetail.csv",["stage", "file", "history_win", "usevol", 'maxProfit', 'maxLOSS', 'avgProfit', 'avgLOSS', 'maxdrop', 'Total profit', 'gross profit', 'TRADES', 'epoch'])
 
         for e in tqdm_e:
             # Reset episode
@@ -135,7 +135,7 @@ class DDQN:
                         np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
                         max_drop, total_profit, gross_profit, trades))
 
-                    WritetoCsvFile("logFileDetail.csv", ["train", np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
+                    WritetoCsvFile("logFileDetail.csv", ["train", args.trainf, args.history_win, args.usevol, np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
                                                         max_drop, total_profit, gross_profit, trades, epoch])
                 #done = True if step == len(env.data) - 3 else False
                 ######################################################
@@ -246,7 +246,7 @@ class DDQN:
                         np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
                         max_drop, total_profit,  trades))
                 WritetoCsvFile("logFileDetail.csv",
-                               ["eval", np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
+                               ["eval", args.trainf, args.history_win, args.usevol, np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
                                 max_drop, total_profit, gross_profit, trades, 'eval'])
             #done = True if step == len(env.data) - 2 else False
             ######################################################
