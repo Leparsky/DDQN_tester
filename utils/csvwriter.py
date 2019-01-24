@@ -2,6 +2,8 @@ import os
 import csv
 from datetime import datetime
 def WritetoCsvFile(filename, list):
+    #return
+    #filename = 'Test.csv'
     sd=datetime.strftime(datetime.now(), "%d.%m.%Y %H:%M:%S")
     dir_path = os.path.dirname(filename)
     if dir_path == "":

@@ -69,7 +69,7 @@ class DDQN:
         self.epsilon *= self.epsilon_decay
 
 
-    def train(self, env, args, summary_writer):
+    def train(self, env, args, summary_writer, envtest=None):
         """ Main DDQN Training Algorithm
         """
 
@@ -77,9 +77,9 @@ class DDQN:
         tqdm_e = tqdm(range(args.nb_episodes), desc='Score', leave=True, unit=" episodes")
         epoch=0
         gross_profit = 0
-        WritetoCsvFile("logFile_1.csv", ["stage", "file", "history_win", "usevol", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS",
+        WritetoCsvFile("logFile_1.csv", ["stage", "file", "history_win", "usevol","dueling", "traineval", "allprices", "allprices2", "candlenum", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS",
                          "maxdrop", "Total profit", "TRADES", "epoch"])
-        WritetoCsvFile("logFileDetail.csv",["stage", "file", "history_win", "usevol", 'maxProfit', 'maxLOSS', 'avgProfit', 'avgLOSS', 'maxdrop', 'Total profit', 'gross profit', 'TRADES', 'epoch'])
+        WritetoCsvFile("logFileDetail.csv",["stage", "file", "history_win", "usevol","dueling", "traineval", "allprices", "allprices2", "candlenum", 'maxProfit', 'maxLOSS', 'avgProfit', 'avgLOSS', 'maxdrop', 'Total profit', 'gross profit', 'TRADES', 'epoch'])
 
         for e in tqdm_e:
             # Reset episode
@@ -99,7 +99,7 @@ class DDQN:
             #####################################3####
 
             while not done:
-                if args.render: env.render()
+                #if args.render: env.render()
                 # Actor picks an action (following the policy)
                 a = self.policy_action(old_state)
                 # Retrieve new state, reward, and whether the state is terminal
@@ -135,7 +135,7 @@ class DDQN:
                         np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
                         max_drop, total_profit, gross_profit, trades))
 
-                    WritetoCsvFile("logFileDetail.csv", ["train", args.trainf, args.history_win, args.usevol, np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
+                    WritetoCsvFile("logFileDetail.csv", ["train", args.trainf, args.history_win, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.candlenum, np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
                                                         max_drop, total_profit, gross_profit, trades, epoch])
                 #done = True if step == len(env.data) - 3 else False
                 ######################################################
@@ -176,9 +176,15 @@ class DDQN:
             self.agent.saveModel("./models/model_ep", "")
             results = [np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst), max_drop,
                        total_profit, trades]
-            epoch +=1
-            WritetoCsvFile("logFile_1.csv",["train", args.trainf, args.history_win, args.usevol] + results + [epoch])
 
+            WritetoCsvFile("logFile_1.csv",["train", args.trainf, args.history_win, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.candlenum] + results + [epoch])
+            if envtest: # Если задано окружение для тестирования то тестируем каждую эпоху
+                newargs = args
+                newargs.traineval = False
+                self.evaluate(envtest, newargs, summary_writer, model=None, epoch=epoch)
+
+
+            epoch += 1
         return results
 
     def memorize(self, state, action, reward, done, new_state):
@@ -195,10 +201,11 @@ class DDQN:
             td_error = 0
         self.buffer.memorize(state, action, reward, done, new_state, td_error)
 
-    def evaluate(self, env, args, summary_writer, model, andtrain=True):
+    def evaluate(self, env, args, summary_writer, model,epoch=0):
         """ Evaluate            """
         results = []
-        self.agent.loadModel(model, "")
+        if model:
+            self.agent.loadModel(model, "")
         done = False
         old_state = env.reset()
         ##########################################
@@ -246,12 +253,12 @@ class DDQN:
                         np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
                         max_drop, total_profit,  trades))
                 WritetoCsvFile("logFileDetail.csv",
-                               ["eval", args.trainf, args.history_win, args.usevol, np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
-                                max_drop, total_profit, gross_profit, trades, 'eval'])
+                               ["eval", args.trainf, args.history_win, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.candlenum, np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
+                                max_drop, total_profit, total_profit, trades, epoch])
             #done = True if step == len(env.data) - 2 else False
             ######################################################
             # Memorize for experience replay
-            if andtrain:
+            if args.traineval:
                 self.memorize(old_state, a, r, done, new_state)
                 # Train DDQN and transfer weights to target network
                 if (self.buffer.size() > args.batch_size):
@@ -261,5 +268,5 @@ class DDQN:
             old_state = new_state
         print('maxProfit: {} maxLOSS: {} avgProfit: {:01.2f} avgLOSS: {:01.2f} maxdrop: {:.2%} Total profit: {} TRADES: {}  '.format(np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst), max_drop, total_profit, trades))
         results=[np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst), max_drop, total_profit, trades]
-        WritetoCsvFile("logFile_1.csv", ["eval", args.trainf, args.history_win, args.usevol] + results + 'eval')
+        WritetoCsvFile("logFile_1.csv", ["eval", args.trainf, args.history_win, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.candlenum] + results + [epoch])
         return results

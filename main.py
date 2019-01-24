@@ -43,6 +43,14 @@ def parse_args(args):
     parser.add_argument('--with_PER', dest='with_per', action='store_true',
                         help="Use Prioritized Experience Replay (DDQN + PER)")
     parser.add_argument('--dueling', dest='dueling', action='store_true', help="Use a Dueling Architecture (DDQN)")
+    parser.add_argument('--traineval', dest='traineval', action='store_true', help="train while eval")
+    parser.add_argument('--allprices', dest='allprices', action='store_true',
+                        help="use all stock prices open close high low")
+    parser.add_argument('--allprices2', dest='allprices2', action='store_true',
+                        help="use all stock prices open close high low [algoritm2]")
+
+    parser.add_argument('--candlenum', dest='candlenum', action='store_true', help="use day weekday and candlenumber")
+
     #
     parser.add_argument('--nb_episodes', type=int, default=50, help="Number of training episodes")
     parser.add_argument('--batch_size', type=int, default=20, help="Batch size (experience replay)")
@@ -92,9 +100,13 @@ def main(args=None):
     # Standard Environments
 
     env = Environment(args)
-    env.GetStockDataVecFN(args.trainf)
+    envtest = Environment(args)
 
-    env.reset()
+    env.GetStockDataVecFN(args.trainf, False)
+    envtest.GetStockDataVecFN(args.evalf, False)
+
+
+
     state_dim = env.get_state_size()
     action_dim = env.get_action_size()
 
@@ -109,19 +121,19 @@ def main(args=None):
     #    algo = DDPG(action_dim, state_dim, act_range, args.consecutive_frames)
 
     # Train
-    stats = algo.train(env, args, summary_writer)
+    stats = algo.train(env, args, summary_writer,envtest)
     # Assuming res is a list of lists
     WritetoCsvFile("logFile.csv",
-                   ["stage", "file", "history_win", "usevol", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop",
+                   ["stage", "file", "history_win", "usevol", "dueling", "traineval", "allprices", "allprices2", "candlenum", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop",
                     "Total profit", "TRADES"])
-    WritetoCsvFile("logFile.csv", ["train",args.trainf, args.history_win, args.usevol] + stats)
+    WritetoCsvFile("logFile.csv", ["train",args.trainf, args.history_win, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.candlenum] + stats)
 
     env.GetStockDataVecFN(args.evalf, False)
     # evaluate
-    stats = algo.evaluate(env, args, summary_writer, "./models/model_ep")
+    #stats = algo.evaluate(envtest, args, summary_writer, "./models/model_ep")
     # Assuming res is a list of lists
-    WritetoCsvFile("logFile.csv",["stage", "file","history_win","usevol", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop", "Total profit", "TRADES"])
-    WritetoCsvFile("logFile.csv", ["evaluate", args.evalf, args.history_win, args.usevol] + stats )
+    #WritetoCsvFile("logFile.csv", ["stage", "file", "history_win", "usevol","dueling", "traineval", "allprices", "allprices2", "candlenum", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop", "Total profit", "TRADES"])
+    #WritetoCsvFile("logFile.csv", ["evaluate", args.evalf, args.history_win, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.candlenum] + stats )
 
 if __name__ == "__main__":
     main()

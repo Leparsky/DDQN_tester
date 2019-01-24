@@ -11,9 +11,19 @@ class Environment:
         self.history_t = args.history_win
 
         self.state_size =  self.history_t+1
-        if args.usevol:
+        if self.args.usevol:
             self.state_size += self.history_t
             self.history_vol = [0 for _ in range(self.history_t)]
+
+        if args.candlenum:
+            self.state_size += 3
+
+        if args.allprices or args.allprices2:
+            self.state_size += self.history_t*3
+            self.open_vol = [0 for _ in range(self.history_t)]
+            self.high_vol = [0 for _ in range(self.history_t)]
+            self.low_vol = [0 for _ in range(self.history_t)]
+          
         self.action_size = 3
         self.t = 0
         self.done = False
@@ -23,12 +33,14 @@ class Environment:
         self.history = [0 for _ in range(self.history_t)]
 
     def GetStockDataVecFN(self, key=r'D:\PycharmProjects\RIZ8\SPFB.RTS-6.18(5M).csv', append=False):
+        #append между разными фьючерсами лучше не делать, как мне кажется если поразмышлять логически
         dateparse = lambda x, y: pd.datetime.combine(pd.datetime.strptime(x, '%Y%m%d'),pd.datetime.strptime(y, '%H%M%S').time())
         df = pd.read_csv(key, delimiter=',', index_col=['datetime'],parse_dates={'datetime': ['<DATE>', '<TIME>']}, date_parser=dateparse)
         if append:
             self.data = pd.concat(self.data, df, ignore_index=True)
         else:
             self.data = df
+        self.reset()
 
     '''def getStockDataVecFN(self,key =  r'D:\PycharmProjects\RIZ8\SPFB.RTS-6.18(5M).csv'):
             dateparse = lambda x, y: pd.datetime.combine(pd.datetime.strptime(x, '%Y%m%d'),
@@ -51,6 +63,10 @@ class Environment:
         self.history = [0 for _ in range(self.history_t)]
         if self.args.usevol:
             self.history_vol  = [0 for _ in range(self.history_t)]
+        if self.args.allprices or self.args.allprices2: 
+            self.open_vol = [0 for _ in range(self.history_t)]
+            self.hidh_vol = [0 for _ in range(self.history_t)]
+            self.low_vol = [0 for _ in range(self.history_t)]
         for _ in range(self.history_t-1):  # step(0) - act = 0: stay
             self.step(0)
         res = self.step(0)
@@ -59,6 +75,9 @@ class Environment:
     def step(self, act):
         datacol = '<CLOSE>'
         datacol_vol  = '<VOL>'
+        opencol = '<OPEN>'
+        highcol = '<HIGH>'
+        lowcol = '<LOW>'
         reward = 0  # stay
         profit = 0
         buy = 0
@@ -108,13 +127,49 @@ class Environment:
         self.history.append(self.data.iloc[self.t, :][datacol] - self.data.iloc[(self.t - 1), :][
             datacol])  # add the diferrence between cureent CLose Value and prior Close Value
 
-        result = [position_val] + self.history
+        result = [position_val + 0.0]
 
+        if self.args.candlenum:
+            result += [self.data.index[self.t].day + 0.0, self.data.index[self.t].dayofweek+1 + 0.0,(self.data.index[self.t].hour*60 + self.data.index[self.t].minute -600 )/5 +1]
+
+        result +=self.history
         if self.args.usevol:
             self.history_vol.pop(0)
             self.history_vol.append(self.data.iloc[self.t, :][datacol_vol] - self.data.iloc[(self.t - 1), :][
                 datacol_vol])  # add the diferrence between cureent CLose Value and prior Close Value
             result+= self.history_vol
+
+
+        if self.args.allprices:
+
+            self.open_vol.pop(0)
+            self.open_vol.append(self.data.iloc[self.t, :][opencol] - self.data.iloc[(self.t - 1), :][
+                opencol])  # add the diferrence between cureent CLose Value and prior Close Value
+            result += self.open_vol
+
+            self.high_vol.pop(0)
+            self.high_vol.append(self.data.iloc[self.t, :][highcol] - self.data.iloc[(self.t - 1), :][
+                highcol])  # add the diferrence between cureent CLose Value and prior Close Value
+            result += self.high_vol
+
+            self.low_vol.pop(0)
+            self.low_vol.append(self.data.iloc[self.t, :][lowcol] - self.data.iloc[(self.t - 1), :][
+                lowcol])  # add the diferrence between cureent CLose Value and prior Close Value
+            result += self.low_vol
+        elif self.args.allprices2:
+            self.open_vol.pop(0)
+            close_t = self.data.iloc[self.t, :][datacol]
+            self.open_vol.append(self.data.iloc[self.t, :][opencol] - close_t)  # add the diferrence
+            result += self.open_vol
+
+            self.high_vol.pop(0)
+            self.high_vol.append(self.data.iloc[self.t, :][highcol]  - close_t)  # add the diferrence
+            result += self.high_vol
+
+            self.low_vol.pop(0)
+            self.low_vol.append(self.data.iloc[self.t, :][lowcol]  - close_t)  # add the diferrence
+            result += self.low_vol
+
         # clipping reward
         if profit != 0:
             reward = profit
