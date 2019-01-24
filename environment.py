@@ -74,6 +74,7 @@ class Environment:
 
     def step(self, act):
         datacol = '<CLOSE>'
+        tickercol = '<TICKER>'
         datacol_vol  = '<VOL>'
         opencol = '<OPEN>'
         highcol = '<HIGH>'
@@ -84,6 +85,8 @@ class Environment:
         sell = 0
         position_val=0
         # act = 0: stay, 1: buy, 2: sell
+
+        ticker = self.data.iloc[self.t, :][tickercol]
         if act == 1:  # buy
             if self.position == 0:  # если не в позиции то добпвляем лонг с "+"
                 self.position = self.data.iloc[self.t, :][datacol]
@@ -96,7 +99,6 @@ class Environment:
                 self.profits += profit
                 buy = self.data.iloc[self.t, :][datacol]
                 self.position = 0
-
                 # Есть открытая короткая позиция
 
         elif act == 2:  # sell
@@ -118,6 +120,27 @@ class Environment:
             position_val = (self.data.iloc[self.t, :][datacol] - self.position)
             # set next time
         self.t += 1
+
+        if self.args.stop > 0:
+            if self.position < 0:
+                lowest_position_val = (-1*self.position - self.data.iloc[self.t, :][highcol] )
+            elif self.position > 0:
+                lowest_position_val = (self.data.iloc[self.t, :][lowcol] - self.position)
+            else:
+                lowest_position_val = 0
+            if -1 * self.args.stop > lowest_position_val:
+                profit = self.args.stop*1.1
+                reward = lowest_position_val
+                position_val = 0
+                self.position = 0
+        if ticker != self.data.iloc[self.t, :][tickercol]:
+            for _ in range(self.history_t):  # step(0) - act = 0: stay
+                self.step(0)
+            reward = 0
+            position_val = 0
+            self.position = 0
+            profit = position_val
+
         # self.position_value = 0
         # for p in self.positions:  # calculate position value
         # self.position_value += (self.data.iloc[self.t, :][datacol] - p)
@@ -173,8 +196,9 @@ class Environment:
         # clipping reward
         if profit != 0:
             reward = profit
-        elif position_val < -300:
+        elif position_val < -self.args.stop/2:
             reward += position_val*3
+
 
         return np.array(result), reward, self.done, buy, sell, profit  # obs, reward, done,profit
 

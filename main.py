@@ -53,6 +53,7 @@ def parse_args(args):
 
     #
     parser.add_argument('--nb_episodes', type=int, default=50, help="Number of training episodes")
+    parser.add_argument('--stop', type=int, default=0, help="stop size")
     parser.add_argument('--batch_size', type=int, default=20, help="Batch size (experience replay)")
     # parser.add_argument('--consecutive_frames', type=int, default=4, help="Number of consecutive frames (action repeat)")
     # parser.add_argument('--training_interval', type=int, default=30, help="Network training frequency")
@@ -124,16 +125,16 @@ def main(args=None):
     stats = algo.train(env, args, summary_writer,envtest)
     # Assuming res is a list of lists
     WritetoCsvFile("logFile.csv",
-                   ["stage", "file", "history_win", "usevol", "dueling", "traineval", "allprices", "allprices2", "candlenum", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop",
+                   ["stage", "file", "history_win", "stop", "usevol", "dueling", "traineval", "allprices", "allprices2", "candlenum", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop",
                     "Total profit", "TRADES"])
-    WritetoCsvFile("logFile.csv", ["train",args.trainf, args.history_win, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.candlenum] + stats)
+    WritetoCsvFile("logFile.csv", ["train",args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.candlenum] + stats)
 
     env.GetStockDataVecFN(args.evalf, False)
     # evaluate
     #stats = algo.evaluate(envtest, args, summary_writer, "./models/model_ep")
     # Assuming res is a list of lists
-    #WritetoCsvFile("logFile.csv", ["stage", "file", "history_win", "usevol","dueling", "traineval", "allprices", "allprices2", "candlenum", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop", "Total profit", "TRADES"])
-    #WritetoCsvFile("logFile.csv", ["evaluate", args.evalf, args.history_win, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.candlenum] + stats )
+    #WritetoCsvFile("logFile.csv", ["stage", "file", "history_win", "stop", "usevol","dueling", "traineval", "allprices", "allprices2", "candlenum", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop", "Total profit", "TRADES"])
+    #WritetoCsvFile("logFile.csv", ["evaluate", args.evalf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.candlenum] + stats )
 
 if __name__ == "__main__":
     main()
