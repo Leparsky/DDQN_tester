@@ -77,9 +77,8 @@ class DDQN:
         tqdm_e = tqdm(range(args.nb_episodes), desc='Score', leave=True, unit=" episodes")
         epoch=0
         gross_profit = 0
-        WritetoCsvFile("logFile_1.csv", ["stage", "file", "history_win", "stop", "usevol","dueling", "traineval", "allprices", "allprices2", "candlenum", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS",
-                         "maxdrop", "Total profit", "TRADES", "epoch"])
-        WritetoCsvFile("logFileDetail.csv",["stage", "file", "history_win", "stop", "usevol","dueling", "traineval", "allprices", "allprices2", "candlenum", 'maxProfit', 'maxLOSS', 'avgProfit', 'avgLOSS', 'maxdrop', 'Total profit', 'gross profit', 'TRADES', 'epoch'])
+        WritetoCsvFile("logFile_1.csv", ["stage", "file", "history_win", "stop", "usevol","dueling", "traineval", "allprices", "allprices2", "allprices3", "candlenum", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "countprofit", "countloss", "maxdrop", "Total profit", "TRADES", "epoch"])
+        WritetoCsvFile("logFileDetail.csv",["stage", "file", "history_win", "stop", "usevol","dueling", "traineval", "allprices", "allprices2", "allprices3", "candlenum", 'maxProfit', 'maxLOSS', 'avgProfit', 'avgLOSS', 'maxdrop', 'Total profit', 'gross profit', 'TRADES', 'epoch'])
 
         for e in tqdm_e:
             # Reset episode
@@ -132,10 +131,10 @@ class DDQN:
                 step += 1
                 if step % 1500 == 0:
                     print('maxProfit: {} maxLOSS: {} avgProfit: {:01.2f} avgLOSS: {:01.2f} maxdrop: {:.2%} Total profit: {}/{} TRADES: {}  '.format(
-                        np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
+                        np.max(profitLst+[0]), -np.min(lossLst+[0]), np.mean(profitLst+[0]), -np.mean(lossLst+[0]),
                         max_drop, total_profit, gross_profit, trades))
 
-                    WritetoCsvFile("logFileDetail.csv", ["train", args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.candlenum, np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
+                    WritetoCsvFile("logFileDetail.csv", ["train", args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.allprices3, args.candlenum, np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
                                                         max_drop, total_profit, gross_profit, trades, epoch])
                 #done = True if step == len(env.data) - 3 else False
                 ######################################################
@@ -174,10 +173,10 @@ class DDQN:
             tqdm_e.set_description("Score: " + str(cumul_reward))
             tqdm_e.refresh()
             self.agent.saveModel("./models/model_ep", "")
-            results = [np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst), max_drop,
+            results = [np.max(profitLst+[0]), -np.min(lossLst+[0]), np.mean(profitLst+[0]), -np.mean(lossLst+[0]), len(profitLst), len(lossLst), max_drop,
                        total_profit, trades]
 
-            WritetoCsvFile("logFile_1.csv",["train", args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.candlenum] + results + [epoch])
+            WritetoCsvFile("logFile_1.csv",["train", args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.allprices3, args.candlenum] + results + [epoch])
             if envtest: # Если задано окружение для тестирования то тестируем каждую эпоху
                 newargs = args
                 newargs.traineval = False
@@ -212,6 +211,9 @@ class DDQN:
         total_reward = 0
         total_profit = 0
         total_loss = 0
+
+
+
         total_profitMax = 0
         total_profitMin = 0
         max_drop = 0
@@ -244,16 +246,17 @@ class DDQN:
                         max_drop = 0
             if profit > 0:
                 profitLst.append(profit)
+
             elif profit < 0:
                 lossLst.append(profit)
             step += 1
             if step % 1500 == 0:
                 print(
                     'maxProfit: {} maxLOSS: {} avgProfit: {:01.2f} avgLOSS: {:01.2f} maxdrop: {:.2%} Total profit: {} TRADES: {}  '.format(
-                        np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
+                        np.max(profitLst+[0]), -np.min(lossLst+[0]), np.mean(profitLst+[0]), -np.mean(lossLst+[0]),
                         max_drop, total_profit,  trades))
                 WritetoCsvFile("logFileDetail.csv",
-                               ["eval", args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.candlenum, np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
+                               ["eval", args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.allprices3, args.candlenum, np.max(profitLst+[0]), -np.min(lossLst+[0]), np.mean(profitLst+[0]), -np.mean(lossLst+[0]),
                                 max_drop, total_profit, total_profit, trades, epoch])
             #done = True if step == len(env.data) - 2 else False
             ######################################################
@@ -267,6 +270,6 @@ class DDQN:
             # Update current state
             old_state = new_state
         print('maxProfit: {} maxLOSS: {} avgProfit: {:01.2f} avgLOSS: {:01.2f} maxdrop: {:.2%} Total profit: {} TRADES: {}  '.format(np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst), max_drop, total_profit, trades))
-        results=[np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst), max_drop, total_profit, trades]
-        WritetoCsvFile("logFile_1.csv", ["eval", args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.candlenum] + results + [epoch])
+        results=[np.max(profitLst+[0]), -np.min(lossLst+[0]), np.mean(profitLst+[0]), -np.mean(lossLst+[0]), len(profitLst), len(lossLst), max_drop, total_profit, trades]
+        WritetoCsvFile("logFile_1.csv", ["eval", args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.allprices3, args.candlenum] + results + [epoch])
         return results

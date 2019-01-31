@@ -1,7 +1,7 @@
 # https://github.com/germain-hug/Deep-RL-Keras
 """ Deep Q-Learning for OpenAI Gym environment
 """
-
+#https://www.finam.ru/profile/mosbirzha-fyuchersy/rts-9-17-riu7/export/?market=17&em=436279&code=RIU7&apply=0&df=17&mf=2&yf=2017&from=17.03.2017&dt=15&mt=5&yt=2017&to=15.06.2017&p=3&f=RIU7_170317_170615&e=.txt&cn=RIU7&dtf=1&tmf=1&MSOR=0&mstime=on&mstimever=1&sep=1&sep2=1&datf=1&at=1
 import os
 import sys
 import csv
@@ -33,8 +33,8 @@ def parse_args(args):
     """
     parser = argparse.ArgumentParser(description='Training parameters')
     #
-    parser.add_argument('--trainf', type=str, default='D:\PycharmProjects\RIZ8\SPFB.RTS-3.18(5M).csv', help="File For train")
-    parser.add_argument('--evalf', type=str, default='D:\PycharmProjects\RIZ8\SPFB.RTS-6.18(5M).csv', help="File for evaluate")
+    parser.add_argument('--trainf', type=str, default='D:\PycharmProjects\RI\SPFB.RTS-3.18(5M).csv;D:\PycharmProjects\RI\SPFB.RTS-6.18(5M).csv', help="File For train")
+    parser.add_argument('--evalf', type=str, default='D:\PycharmProjects\RIZ8\SPFB.RTS-9.18(5M).csv', help="File for evaluate")
     parser.add_argument('--usevol', dest='usevol', default=False, action='store_true', help="Add volume to environment")
     parser.add_argument('--type', type=str, default='DDQN', help="Algorithm to train from {A2C, A3C, DDQN, DDPG}")
     # parser.add_argument('--is_atari', dest='is_atari', action='store_true', help="Atari Environment")
@@ -47,6 +47,8 @@ def parse_args(args):
     parser.add_argument('--allprices', dest='allprices', action='store_true',
                         help="use all stock prices open close high low")
     parser.add_argument('--allprices2', dest='allprices2', action='store_true',
+                        help="use all stock prices open close high low [algoritm2]")
+    parser.add_argument('--allprices3', dest='allprices3', action='store_true',
                         help="use all stock prices open close high low [algoritm2]")
 
     parser.add_argument('--candlenum', dest='candlenum', action='store_true', help="use day weekday and candlenumber")
@@ -101,7 +103,10 @@ def main(args=None):
     # Standard Environments
 
     env = Environment(args)
+    env.adddatacandle("2018-09-03 10:10:00", "SPFB.RTS-9.18", 5, 108960.0, 109050.0, 108660.0, 109050.0, 7234)
     envtest = Environment(args)
+
+    #for f in args.trainf.split(';'):
 
     env.GetStockDataVecFN(args.trainf, False)
     envtest.GetStockDataVecFN(args.evalf, False)
@@ -125,11 +130,11 @@ def main(args=None):
     stats = algo.train(env, args, summary_writer,envtest)
     # Assuming res is a list of lists
     WritetoCsvFile("logFile.csv",
-                   ["stage", "file", "history_win", "stop", "usevol", "dueling", "traineval", "allprices", "allprices2", "candlenum", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop",
+                   ["stage", "file", "history_win", "stop", "usevol", "dueling", "traineval", "allprices", "allprices2", "allprices3", "candlenum", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop",
                     "Total profit", "TRADES"])
-    WritetoCsvFile("logFile.csv", ["train",args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.candlenum] + stats)
+    WritetoCsvFile("logFile.csv", ["train",args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.allprices3, args.candlenum] + stats)
 
-    env.GetStockDataVecFN(args.evalf, False)
+    #env.GetStockDataVecFN(args.evalf, False)
     # evaluate
     #stats = algo.evaluate(envtest, args, summary_writer, "./models/model_ep")
     # Assuming res is a list of lists
