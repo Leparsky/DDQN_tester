@@ -4,15 +4,24 @@
 import pandas as pd
 import numpy as np
 import math
-
+import pandas as pd
 
 class Environment:
     def __init__(self, args):
         #self.data = None
         self.args = args
         self.history_t = args.history_win
-
         self.state_size = self.history_t + 1
+
+        if self.args.ma1:
+            self.state_size += self.history_t
+            self.ma1_vol = [0 for _ in range(self.history_t)]
+
+        if self.args.ma2:
+            self.state_size += self.history_t
+            self.ma2_vol = [0 for _ in range(self.history_t)]
+        #args.ma1, args.ma2,
+
         if self.args.usevol:
             self.state_size += self.history_t
             self.history_vol = [0 for _ in range(self.history_t)]
@@ -65,6 +74,13 @@ class Environment:
                                       }, index=[datetime])
             #self.data.index = [datetime]
             self.data.indexname = "datetime"
+            if self.args.ma1:
+                MA = pd.Series(pd.rolling_mean(df[self.datacol], self.args.ma1), name='ma1')
+                self.data = self.data.join(MA)
+
+            if self.args.ma2:
+                MA = pd.Series(pd.rolling_mean(df[self.datacol], self.args.ma2), name='ma2')
+                self.data = self.data.join(MA)
         #        self.data df.append({'Animal': 'mouse', 'Color': 'black'}, ignore_index=True)
     def GetStockDataVecFN(self, key=r'D:\PycharmProjects\RIZ8\SPFB.RTS-6.18(5M).csv', append=False):
         # append между разными фьючерсами лучше не делать, как мне кажется если поразмышлять логически
@@ -79,6 +95,16 @@ class Environment:
                 self.data = df
         except AttributeError:
             self.data = df
+
+        if self.args.ma1:
+            self.data['ma1'] = self.data[self.datacol].rolling(self.args.ma1).mean()
+            #self.data = self.data.join(MA)
+
+        if self.args.ma2:
+            self.data['ma2'] = self.data[self.datacol].rolling(self.args.ma2).mean()
+            #MA = pd.Series(pd.rolling_mean(df[self.datacol], self.args.ma2), name='ma2')
+            #self.data = self.data.join(MA)
+
     '''def getStockDataVecFN(self,key =  r'D:\PycharmProjects\RIZ8\SPFB.RTS-6.18(5M).csv'):
             dateparse = lambda x, y: pd.datetime.combine(pd.datetime.strptime(x, '%Y%m%d'),
                                                          pd.datetime.strptime(y, '%H%M%S').time())
@@ -99,13 +125,18 @@ class Environment:
         self.position = 0
         # self.position_value = 0
         self.history = [0 for _ in range(self.history_t)]
+        if self.args.ma1:
+            self.ma1_vol = [0 for _ in range(self.history_t)]
+        if self.args.ma2:
+            self.ma2_vol = [0 for _ in range(self.history_t)]
+        #args.ma1, args.ma2,
         if self.args.usevol:
             self.history_vol = [0 for _ in range(self.history_t)]
         if self.args.allprices or self.args.allprices2 or self.args.allprices3:
             self.open_vol = [0 for _ in range(self.history_t)]
             self.hidh_vol = [0 for _ in range(self.history_t)]
             self.low_vol = [0 for _ in range(self.history_t)]
-        for _ in range(self.history_t - 1):  # step(0) - act = 0: stay
+        for _ in range(self.history_t + np.max([self.args.ma1, self.args.ma2]) - 1):  # step(0) - act = 0: stay
             self.step(0)
         res = self.step(0)
         return res[0]
@@ -119,7 +150,15 @@ class Environment:
         if self.args.candlenum:
             result += [self.data.index[self.t].day + 0.0, self.data.index[self.t].dayofweek + 1 + 0.0,
                        (self.data.index[self.t].hour * 60 + self.data.index[self.t].minute - 600) / 5 + 1]
-
+        if self.args.ma1 and self.t > self.args.ma1:
+            self.ma1_vol.pop(0)
+            self.ma1_vol.append(self.data.iloc[self.t, :]['ma1'] - self.data.iloc[(self.t - 1), :]['ma1'])  # add the diferrence between cureent CLose Value and prior Close Value
+            result += self.ma1_vol
+        if self.args.ma2 and self.t > self.args.ma2:
+            self.ma2_vol.pop(0)
+            self.ma2_vol.append(self.data.iloc[self.t, :]['ma2'] - self.data.iloc[(self.t - 1), :]['ma2'])  # add the diferrence between cureent CLose Value and prior Close Value
+            result += self.ma2_vol
+        #args.ma1, args.ma2,
         if self.args.usevol:
             self.history_vol.pop(0)
             self.history_vol.append(self.data.iloc[self.t, :][self.datacol_vol] - self.data.iloc[(self.t - 1), :][

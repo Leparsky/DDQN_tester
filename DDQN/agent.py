@@ -44,8 +44,8 @@ class Agent:
             x = Dense(256, activation='relu')(x)
         else:'''
         #x = Flatten()(inp) # Слой преобразования данных из 2D представления в плоское
-        x = Dense(self.state_dim*2, activation='relu')(inp)
-        x = Dense(self.state_dim*2, activation='relu')(x)
+        x = Dense(int(self.state_dim), activation='relu')(inp)
+        x = Dense(int(self.state_dim/2), activation='relu')(x)
 
         if(dueling):
             # Have the network estimate the Advantage function as an intermediate layer

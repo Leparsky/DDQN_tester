@@ -38,7 +38,8 @@ def parse_args(args):
     parser.add_argument('--usevol', dest='usevol', default=False, action='store_true', help="Add volume to environment")
     parser.add_argument('--type', type=str, default='DDQN', help="Algorithm to train from {A2C, A3C, DDQN, DDPG}")
     # parser.add_argument('--is_atari', dest='is_atari', action='store_true', help="Atari Environment")
-
+    parser.add_argument('--ma1', type=int, default=0, help="MA 1")
+    parser.add_argument('--ma2', type=int, default=0, help="MA 1")
     parser.add_argument('--history_win', type=int, default=90, help="Number history window")
     parser.add_argument('--with_PER', dest='with_per', action='store_true',
                         help="Use Prioritized Experience Replay (DDQN + PER)")
@@ -103,7 +104,7 @@ def main(args=None):
     # Standard Environments
 
     env = Environment(args)
-    env.adddatacandle("2018-09-03 10:10:00", "SPFB.RTS-9.18", 5, 108960.0, 109050.0, 108660.0, 109050.0, 7234)
+    #env.adddatacandle("2018-09-03 10:10:00", "SPFB.RTS-9.18", 5, 108960.0, 109050.0, 108660.0, 109050.0, 7234)
     envtest = Environment(args)
 
     #for f in args.trainf.split(';'):
@@ -130,9 +131,9 @@ def main(args=None):
     stats = algo.train(env, args, summary_writer,envtest)
     # Assuming res is a list of lists
     WritetoCsvFile("logFile.csv",
-                   ["stage", "file", "history_win", "stop", "usevol", "dueling", "traineval", "allprices", "allprices2", "allprices3", "candlenum", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop",
+                   ["stage", "file", "history_win", "stop", "usevol", "dueling", "traineval", "allprices", "allprices2", "allprices3","ma1", "ma2", "candlenum", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop",
                     "Total profit", "TRADES"])
-    WritetoCsvFile("logFile.csv", ["train",args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.allprices3, args.candlenum] + stats)
+    WritetoCsvFile("logFile.csv", ["train",args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.allprices3,args.ma1, args.ma2, args.candlenum] + stats)
 
     #env.GetStockDataVecFN(args.evalf, False)
     # evaluate
