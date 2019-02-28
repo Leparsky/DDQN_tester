@@ -1,0 +1,4 @@
+посмотреть можно
+https://github.com/deependersingla/deep_trader ,  идеи по входным данным: https://docs.google.com/document/d/12TmodyT4vZBViEbWXkUIgRW_qmL1rTW00GxSMqYGNHU/edit
+
+оже можно глянуть https://github.com/thedimlebowski/Trading-Gym; https://github.com/falconzyx/Trading-Brain

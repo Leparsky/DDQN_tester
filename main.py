@@ -4,11 +4,8 @@
 #https://www.finam.ru/profile/mosbirzha-fyuchersy/rts-9-17-riu7/export/?market=17&em=436279&code=RIU7&apply=0&df=17&mf=2&yf=2017&from=17.03.2017&dt=15&mt=5&yt=2017&to=15.06.2017&p=3&f=RIU7_170317_170615&e=.txt&cn=RIU7&dtf=1&tmf=1&MSOR=0&mstime=on&mstimever=1&sep=1&sep2=1&datf=1&at=1
 import os
 import sys
-import csv
 #import gym
 import argparse
-import numpy as np
-import pandas as pd
 import tensorflow as tf
 from environment import Environment
 
@@ -18,7 +15,6 @@ from DDQN.ddqn import DDQN
 # from DDPG.ddpg import DDPG
 
 from keras.backend.tensorflow_backend import set_session
-from keras.utils import to_categorical
 
 # from utils.atari_environment import AtariEnvironment
 # from utils.continuous_environments import Environment
@@ -40,7 +36,12 @@ def parse_args(args):
     # parser.add_argument('--is_atari', dest='is_atari', action='store_true', help="Atari Environment")
     parser.add_argument('--ma1', type=int, default=0, help="MA 1")
     parser.add_argument('--ma2', type=int, default=0, help="MA 1")
+    parser.add_argument('--madifference', dest='madifference', default=False, action='store_true', help="Add ma2-ma1")
+    parser.add_argument('--hidema', dest='hidema', default=False, action='store_true', help="use only difference ma")
+
     parser.add_argument('--history_win', type=int, default=90, help="Number history window")
+    parser.add_argument('--hidden_dim', type=int, default=100, help="Number args.hidden_dim")
+
     parser.add_argument('--with_PER', dest='with_per', action='store_true',
                         help="Use Prioritized Experience Replay (DDQN + PER)")
     parser.add_argument('--dueling', dest='dueling', action='store_true', help="Use a Dueling Architecture (DDQN)")
@@ -131,9 +132,9 @@ def main(args=None):
     stats = algo.train(env, args, summary_writer,envtest)
     # Assuming res is a list of lists
     WritetoCsvFile("logFile.csv",
-                   ["stage", "file", "history_win", "stop", "usevol", "dueling", "traineval", "allprices", "allprices2", "allprices3","ma1", "ma2", "candlenum", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop",
-                    "Total profit", "TRADES"])
-    WritetoCsvFile("logFile.csv", ["train",args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.allprices3,args.ma1, args.ma2, args.candlenum] + stats)
+                   ["stage", "file", "history_win", "stop", "usevol", "dueling", "traineval", "allprices", "allprices2", "allprices3","ma1", "ma2", "madifference", "hidema", "candlenum", "hidden_dim", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "maxdrop",
+                    "Total profit", "total_reward", "TRADES"])
+    WritetoCsvFile("logFile.csv", ["train",args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.allprices3,args.ma1, args.ma2, args.madifference, args.hidema, args.candlenum, args.hidden_dim] + stats)
 
     #env.GetStockDataVecFN(args.evalf, False)
     # evaluate

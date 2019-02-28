@@ -2,7 +2,7 @@ import random
 import numpy as np
 
 from tqdm import tqdm
-from .agent import Agent
+from DDQN.agent import Agent
 from random import random, randrange
 
 from utils.memory_buffer import MemoryBuffer
@@ -30,7 +30,7 @@ class DDQN:
         self.tau = 1e-2
 
         # Create actor and critic networks
-        self.agent = Agent(self.state_dim, action_dim, self.lr, self.tau, args.dueling)
+        self.agent = Agent(self.state_dim, action_dim, self.lr, self.tau, args.dueling, args.hidden_dim)
         # Memory Buffer for Experience Replay
         self.buffer = MemoryBuffer(self.buffer_size, args.with_per)
 
@@ -77,8 +77,8 @@ class DDQN:
         tqdm_e = tqdm(range(args.nb_episodes), desc='Score', leave=True, unit=" episodes")
         epoch=0
         gross_profit = 0
-        WritetoCsvFile("logFile_1.csv", ["stage", "file", "history_win", "stop", "usevol","dueling", "traineval", "allprices", "allprices2", "allprices3", "candlenum", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "countprofit", "countloss", "maxdrop", "Total profit", "TRADES", "epoch"])
-        WritetoCsvFile("logFileDetail.csv",["stage", "file", "history_win", "stop", "usevol","dueling", "traineval", "allprices", "allprices2", "allprices3", "candlenum", 'maxProfit', 'maxLOSS', 'avgProfit', 'avgLOSS', 'maxdrop', 'Total profit', 'gross profit', 'TRADES', 'epoch'])
+        WritetoCsvFile("logFile_1.csv", ["stage", "file", "history_win", "stop", "usevol","dueling", "traineval", "allprices", "allprices2", "allprices3", "ma1", "ma2", "madifference", "hidema", "candlenum", "hidden_dim", "maxProfit", "maxLOSS", "avgProfit", "avgLOSS", "countprofit", "countloss", "maxdrop", "Total profit", "total_reward", "TRADES", "epoch"])
+        WritetoCsvFile("logFileDetail.csv",["stage", "file", "history_win", "stop", "usevol","dueling", "traineval", "allprices", "allprices2", "allprices3", "ma1", "ma2", "madifference", "hidema", "candlenum", "hidden_dim", 'maxProfit', 'maxLOSS', 'avgProfit', 'avgLOSS', 'maxdrop', 'Total profit', 'gross profit', "total_reward", 'TRADES', 'epoch'])
 
         for e in tqdm_e:
             # Reset episode
@@ -134,8 +134,8 @@ class DDQN:
                         np.max(profitLst+[0]), -np.min(lossLst+[0]), np.mean(profitLst+[0]), -np.mean(lossLst+[0]),
                         max_drop, total_profit, gross_profit, trades))
 
-                    WritetoCsvFile("logFileDetail.csv", ["train", args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.allprices3, args.candlenum, np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst),
-                                                        max_drop, total_profit, gross_profit, trades, epoch])
+                    WritetoCsvFile("logFileDetail.csv", ["train", args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.allprices3, args.ma1, args.ma2, args.madifference, args.hidema, args.candlenum, args.hidden_dim, np.max(profitLst + [0]), -np.min(lossLst + [0]), np.mean(profitLst + [0]), -np.mean(lossLst + [0]),
+                                                        max_drop, total_profit, gross_profit, total_reward, trades, epoch])
                 #done = True if step == len(env.data) - 3 else False
                 ######################################################
                 # Memorize for experience replay
@@ -174,9 +174,9 @@ class DDQN:
             tqdm_e.refresh()
             self.agent.saveModel("./models/model_ep", "")
             results = [np.max(profitLst+[0]), -np.min(lossLst+[0]), np.mean(profitLst+[0]), -np.mean(lossLst+[0]), len(profitLst), len(lossLst), max_drop,
-                       total_profit, trades]
+                       total_profit, total_reward, trades]
 
-            WritetoCsvFile("logFile_1.csv",["train", args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.allprices3, args.candlenum] + results + [epoch])
+            WritetoCsvFile("logFile_1.csv",["train", args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.allprices3, args.ma1, args.ma2, args.madifference, args.hidema, args.candlenum, args.hidden_dim] + results + [epoch])
             if envtest: # Если задано окружение для тестирования то тестируем каждую эпоху
                 newargs = args
                 newargs.traineval = False
@@ -200,20 +200,18 @@ class DDQN:
             td_error = 0
         self.buffer.memorize(state, action, reward, done, new_state, td_error)
 
+
     def evaluate(self, env, args, summary_writer, model,epoch=0):
         """ Evaluate            """
         results = []
         if model:
-            self.agent.loadModel(model, "")
+            self.agent.loadModel_versoin(model, "")
         done = False
         old_state = env.reset()
         ##########################################
         total_reward = 0
         total_profit = 0
         total_loss = 0
-
-
-
         total_profitMax = 0
         total_profitMin = 0
         max_drop = 0
@@ -252,12 +250,12 @@ class DDQN:
             step += 1
             if step % 1500 == 0:
                 print(
-                    'maxProfit: {} maxLOSS: {} avgProfit: {:01.2f} avgLOSS: {:01.2f} maxdrop: {:.2%} Total profit: {} TRADES: {}  '.format(
+                    'maxProfit: {} maxLOSS: {} avgProfit: {:01.2f} avgLOSS: {:01.2f} maxdrop: {:.2%} Total profit: {}  Total reward: {}  TRADES: {}  '.format(
                         np.max(profitLst+[0]), -np.min(lossLst+[0]), np.mean(profitLst+[0]), -np.mean(lossLst+[0]),
-                        max_drop, total_profit,  trades))
+                        max_drop, total_profit, total_reward,  trades))
                 WritetoCsvFile("logFileDetail.csv",
-                               ["eval", args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.allprices3, args.candlenum, np.max(profitLst+[0]), -np.min(lossLst+[0]), np.mean(profitLst+[0]), -np.mean(lossLst+[0]),
-                                max_drop, total_profit, total_profit, trades, epoch])
+                               ["eval", args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.allprices3, args.ma1, args.ma2, args.madifference, args.hidema, args.candlenum, args.hidden_dim, np.max(profitLst+[0]), -np.min(lossLst+[0]), np.mean(profitLst+[0]), -np.mean(lossLst+[0]),
+                                max_drop, total_profit, total_profit, total_reward, trades, epoch])
             #done = True if step == len(env.data) - 2 else False
             ######################################################
             # Memorize for experience replay
@@ -269,7 +267,7 @@ class DDQN:
                     self.agent.transfer_weights()
             # Update current state
             old_state = new_state
-        print('maxProfit: {} maxLOSS: {} avgProfit: {:01.2f} avgLOSS: {:01.2f} maxdrop: {:.2%} Total profit: {} TRADES: {}  '.format(np.max(profitLst), -np.min(lossLst), np.mean(profitLst), -np.mean(lossLst), max_drop, total_profit, trades))
-        results=[np.max(profitLst+[0]), -np.min(lossLst+[0]), np.mean(profitLst+[0]), -np.mean(lossLst+[0]), len(profitLst), len(lossLst), max_drop, total_profit, trades]
-        WritetoCsvFile("logFile_1.csv", ["eval", args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.allprices3, args.candlenum] + results + [epoch])
+        print('maxProfit: {} maxLOSS: {} avgProfit: {:01.2f} avgLOSS: {:01.2f} maxdrop: {:.2%} Total profit: {} Total reward: {} TRADES: {}  '.format(np.max(profitLst+[0]), -np.min(lossLst+[0]), np.mean(profitLst+[0]), -np.mean(lossLst+[0]), max_drop, total_profit,total_reward,  trades))
+        results=[np.max(profitLst+[0]), -np.min(lossLst+[0]), np.mean(profitLst+[0]), -np.mean(lossLst+[0]), len(profitLst), len(lossLst), max_drop, total_profit, total_reward, trades]
+        WritetoCsvFile("logFile_1.csv", ["eval", args.trainf, args.history_win, args.stop, args.usevol, args.dueling, args.traineval, args.allprices, args.allprices2, args.allprices3, args.ma1, args.ma2, args.madifference, args.hidema, args.candlenum, args.hidden_dim] + results + [epoch])
         return results

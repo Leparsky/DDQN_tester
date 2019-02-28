@@ -13,11 +13,17 @@ class Environment:
         self.history_t = args.history_win
         self.state_size = self.history_t + 1
 
-        if self.args.ma1:
+
+
+        if self.args.madifference:
+            self.state_size += self.history_t
+            self.madifference_vol = [0 for _ in range(self.history_t)]
+
+        if self.args.ma1 and not self.args.hidema:
             self.state_size += self.history_t
             self.ma1_vol = [0 for _ in range(self.history_t)]
 
-        if self.args.ma2:
+        if self.args.ma2 and not self.args.hidema:
             self.state_size += self.history_t
             self.ma2_vol = [0 for _ in range(self.history_t)]
         #args.ma1, args.ma2,
@@ -52,6 +58,9 @@ class Environment:
         self.tickercol = '<TICKER>'
     def clearDataVecFN(self):
         self.data = self.data.iloc[0:0]
+    def check_data_integrity4prediction_at(self,datatime):
+        tt = self.data.loc[datatime]
+        tt1 = self.data.loc[datatime]
     def adddatacandle(self,datetime,ticker,per, open,high,low,close,vol):
         try:
             if self.data:
@@ -75,13 +84,14 @@ class Environment:
             #self.data.index = [datetime]
             self.data.indexname = "datetime"
             if self.args.ma1:
-                MA = pd.Series(pd.rolling_mean(df[self.datacol], self.args.ma1), name='ma1')
-                self.data = self.data.join(MA)
+                self.data['ma1'] = self.data[self.datacol].rolling(self.args.ma1).mean()
+                # self.data = self.data.join(MA)
 
             if self.args.ma2:
-                MA = pd.Series(pd.rolling_mean(df[self.datacol], self.args.ma2), name='ma2')
-                self.data = self.data.join(MA)
-        #        self.data df.append({'Animal': 'mouse', 'Color': 'black'}, ignore_index=True)
+                self.data['ma2'] = self.data[self.datacol].rolling(self.args.ma2).mean()
+                # MA = pd.Series(pd.rolling_mean(df[self.datacol], self.args.ma2), name='ma2')
+                # self.data = self.data.join(MA)
+
     def GetStockDataVecFN(self, key=r'D:\PycharmProjects\RIZ8\SPFB.RTS-6.18(5M).csv', append=False):
         # append между разными фьючерсами лучше не делать, как мне кажется если поразмышлять логически
         dateparse = lambda x, y: pd.datetime.combine(pd.datetime.strptime(x, '%Y%m%d'),
@@ -123,13 +133,18 @@ class Environment:
         self.done = False
         self.profits = 0
         self.position = 0
+        self.positions = []
         # self.position_value = 0
         self.history = [0 for _ in range(self.history_t)]
-        if self.args.ma1:
+        if self.args.ma1 and not self.args.hidema:
             self.ma1_vol = [0 for _ in range(self.history_t)]
-        if self.args.ma2:
+
+        if self.args.ma2 and not self.args.hidema:
             self.ma2_vol = [0 for _ in range(self.history_t)]
-        #args.ma1, args.ma2,
+
+        if self.args.madifference:
+            self.madifference_vol = [0 for _ in range(self.history_t)]
+
         if self.args.usevol:
             self.history_vol = [0 for _ in range(self.history_t)]
         if self.args.allprices or self.args.allprices2 or self.args.allprices3:
@@ -150,15 +165,20 @@ class Environment:
         if self.args.candlenum:
             result += [self.data.index[self.t].day + 0.0, self.data.index[self.t].dayofweek + 1 + 0.0,
                        (self.data.index[self.t].hour * 60 + self.data.index[self.t].minute - 600) / 5 + 1]
-        if self.args.ma1 and self.t > self.args.ma1:
+        if self.args.ma1 and self.t > self.args.ma1 and not self.args.hidema:
             self.ma1_vol.pop(0)
             self.ma1_vol.append(self.data.iloc[self.t, :]['ma1'] - self.data.iloc[(self.t - 1), :]['ma1'])  # add the diferrence between cureent CLose Value and prior Close Value
             result += self.ma1_vol
-        if self.args.ma2 and self.t > self.args.ma2:
+        if self.args.ma2 and self.t > self.args.ma2 and not self.args.hidema:
             self.ma2_vol.pop(0)
             self.ma2_vol.append(self.data.iloc[self.t, :]['ma2'] - self.data.iloc[(self.t - 1), :]['ma2'])  # add the diferrence between cureent CLose Value and prior Close Value
             result += self.ma2_vol
-        #args.ma1, args.ma2,
+
+        if self.args.madifference and self.args.ma2 and self.t > self.args.ma2 and self.args.ma1 and self.t > self.args.ma1:
+            self.madifference_vol.pop(0)
+            self.madifference_vol.append(self.data.iloc[self.t, :]['ma2'] - self.data.iloc[self.t, :]['ma1'])  # add the diferrence between cureent CLose Value and prior Close Value
+            result += self.madifference_vol
+
         if self.args.usevol:
             self.history_vol.pop(0)
             self.history_vol.append(self.data.iloc[self.t, :][self.datacol_vol] - self.data.iloc[(self.t - 1), :][
@@ -240,6 +260,66 @@ class Environment:
         return result
 
     def step(self, act):
+        return self.step1(act)
+
+    def step1(self, act):
+        #лонг
+
+        reward = 0  # stay
+        profit = 0
+        buy = 0
+        sell = 0
+        position_val = 0
+        # act = 0: stay, 1: buy, 2: sell
+
+        ticker = self.data.iloc[self.t, :][self.tickercol]
+        if act == 1:  # buy
+            self.positions.append(
+                self.data.iloc[self.t, :][self.datacol])  # add value to long positions (we enter at the candle close)
+        elif act == 2:  # sell
+            if len(self.positions) == 0:
+                reward = -1
+            else:
+                profits = 0  # calculate profit/loss current position
+
+                for p in self.positions:
+                    profits += (self.data.iloc[self.t, :][self.datacol] - p)
+                reward += profits
+                self.profits += profits  # Remember profit
+                profit = profits
+                self.positions = []  # Close all long positions
+
+        result = self.gotnextstate()
+
+        position_val = 0
+        for p in self.positions:  # calculate position value
+            position_val += (self.data.iloc[self.t, :][self.datacol] - p)
+
+
+
+
+        result = [position_val + 0.0] + result
+
+
+        if ticker != self.data.iloc[self.t, :][self.tickercol]:
+            for _ in range(self.history_t):  # step(0) - act = 0: stay
+                result = [0.0] + self.gotnextstate()
+            reward = 0
+            position_val = 0
+            self.position = 0
+            profit = position_val
+
+        # clipping reward
+
+        if reward > 0:
+            reward = 1
+        elif reward < 0:
+            reward = -1
+
+        return np.array(result), reward, self.done, buy, sell, profit  # obs, reward, done,profit
+
+    def step0(self, act):
+        #-шорт и лонг
 
         reward = 0  # stay
         profit = 0
@@ -302,8 +382,8 @@ class Environment:
             # clipping reward
         if profit != 0:
             reward = profit
-        elif position_val < -self.args.stop / 2:
-            reward += position_val * 3
+        #elif position_val < -self.args.stop / 2:
+        #    reward += position_val * 3
 
         if ticker != self.data.iloc[self.t, :][self.tickercol]:
             for _ in range(self.history_t):  # step(0) - act = 0: stay

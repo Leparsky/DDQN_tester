@@ -14,9 +14,13 @@ class Agent:
     """ Agent Class (Network) for DDQN
     """
 
-    def __init__(self, state_dim, action_dim, lr, tau, dueling):
+    def __init__(self, state_dim, action_dim, lr, tau, dueling, hidden_dim=0):
         self.state_dim = state_dim
         self.action_dim = action_dim
+        if hidden_dim == 0:
+            self.hidden_dim=self.state_dim
+        else:
+            self.hidden_dim = hidden_dim
         self.tau = tau
         # Initialize Deep Q-Network
         self.model = self.network(dueling)
@@ -44,8 +48,9 @@ class Agent:
             x = Dense(256, activation='relu')(x)
         else:'''
         #x = Flatten()(inp) # Слой преобразования данных из 2D представления в плоское
-        x = Dense(int(self.state_dim), activation='relu')(inp)
-        x = Dense(int(self.state_dim/2), activation='relu')(x)
+        x = Dense(int(self.hidden_dim), activation='relu')(inp)
+        x = Dense(int(self.hidden_dim), activation='relu')(x)
+
 
         if(dueling):
             # Have the network estimate the Advantage function as an intermediate layer
@@ -95,10 +100,14 @@ class Agent:
             while os.path.exists(file_path+str(v)):
                 v += 1
             self.model.save(file_path+str(v))
-    def loadModel(self, file_path,version):
+
+    def loadModel_versoin(self, file_path, version):
         if version:
-            self.model = load_model(file_path+version)
+            self.model = load_model(file_path + version)
         else:
-            v=1
-        while os.path.exists(file_path+str(v)):
+            v = 1
+        while os.path.exists(file_path + str(v)):
             v += 1
+
+    def loadModel(self, file_path):
+        self.model = load_model(file_path)
