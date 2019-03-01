@@ -9,8 +9,7 @@ import argparse
 import tensorflow as tf
 from environment import Environment
 
-# from A2C.a2c import A2C
-# from A3C.a3c import A3C
+
 from DDQN.ddqn import DDQN
 # from DDPG.ddpg import DDPG
 
